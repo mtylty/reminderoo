@@ -8,10 +8,24 @@ const path = require('path');
 const axios = require('axios');
 const Handlebars = require('handlebars');
 
+// Add a simple logging utility
+function log(message, data = null) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
+  if (data) {
+    console.log(JSON.stringify(data, null, 2));
+  }
+}
+
+// Add logging to initialization
+log('🦘 Reminderoo is starting up...');
+
 // Initialize Slack client
+log('Initializing Slack client...');
 const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // Configure Google Calendar API
+log('Configuring Google Calendar API...');
 const calendar = google.calendar({
   version: 'v3',
   auth: new google.auth.JWT(
@@ -23,6 +37,7 @@ const calendar = google.calendar({
 });
 
 // Configure HiBob API client
+log('Configuring HiBob client...');
 const hibob = axios.create({
   baseURL: process.env.HIBOB_BASE_URL,
   headers: {
@@ -32,9 +47,11 @@ const hibob = axios.create({
 });
 
 // Load notification configuration
+log('Loading notification configuration...');
 const notificationConfig = yaml.load(
   fs.readFileSync(path.join(__dirname, 'config', 'notifications.yml'), 'utf8')
 );
+log('Notification config loaded:', notificationConfig);
 
 // Template cache
 const templates = {};
@@ -76,25 +93,37 @@ async function sendNotification(event, notificationConfig) {
 
 async function sendSlackMessage(message) {
   try {
+    log('Sending Slack message:', { channel: process.env.SLACK_CHANNEL_ID, message });
     await slack.chat.postMessage({
       channel: process.env.SLACK_CHANNEL_ID,
       text: message,
       parse: 'mrkdwn'
     });
+    log('✅ Slack message sent successfully');
   } catch (error) {
-    console.error('Error sending Slack message:', error);
+    log('❌ Error sending Slack message:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
   }
 }
 
 async function sendHiBobShoutout(message) {
   try {
+    log('Sending HiBob shoutout:', { message });
     await hibob.post('/shoutouts', {
       text: message,
       type: process.env.HIBOB_SHOUTOUT_TYPE,
       visibility: process.env.HIBOB_SHOUTOUT_VISIBILITY
     });
+    log('✅ HiBob shoutout sent successfully');
   } catch (error) {
-    console.error('Error sending HiBob shoutout:', error);
+    log('❌ Error sending HiBob shoutout:', {
+      message: error.message,
+      response: error.response?.data,
+      stack: error.stack
+    });
   }
 }
 
@@ -125,6 +154,7 @@ const NOTIFICATION_TIMES = notificationConfig.notifications.map(notification => 
 // Function to fetch upcoming events
 async function getUpcomingEvents() {
   try {
+    log('Fetching upcoming events...');
     const response = await calendar.events.list({
       calendarId: process.env.GOOGLE_CALENDAR_ID,
       timeMin: new Date().toISOString(),
@@ -132,36 +162,60 @@ async function getUpcomingEvents() {
       singleEvents: true,
       orderBy: 'startTime',
     });
+    log(`Found ${response.data.items.length} upcoming events:`, response.data.items);
     return response.data.items;
   } catch (error) {
-    console.error('Error fetching calendar events:', error);
+    log('❌ Error fetching calendar events:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return [];
   }
 }
 
 // Function to schedule reminders
 async function scheduleReminders() {
+  log('Starting to schedule reminders...');
   const events = await getUpcomingEvents();
   
   events.forEach(event => {
     const startTime = new Date(event.start.dateTime || event.start.date);
+    log(`Processing event: ${event.summary}`, { startTime });
     
     NOTIFICATION_TIMES.forEach(notification => {
       const reminderTime = new Date(startTime.getTime() - notification.minutes * 60000);
       
       if (reminderTime > new Date()) {
+        log(`Scheduling notification for "${event.summary}"`, {
+          notificationTime: reminderTime,
+          timeUntilNotification: `${notification.originalTime}`
+        });
+        
         schedule.scheduleJob(reminderTime, () => {
+          log(`⏰ Executing scheduled notification for "${event.summary}"`);
           sendNotification(event, notification);
+        });
+      } else {
+        log(`Skipping past notification time for "${event.summary}"`, {
+          reminderTime,
+          currentTime: new Date()
         });
       }
     });
   });
+  log('Finished scheduling reminders');
 }
 
-// Update the scheduler to use the configured check interval
-schedule.scheduleJob(process.env.APP_CHECK_INTERVAL, scheduleReminders);
+// Add logging to the initial setup
+log(`Setting up scheduler with interval: ${process.env.APP_CHECK_INTERVAL}`);
+schedule.scheduleJob(process.env.APP_CHECK_INTERVAL, () => {
+  log('Running scheduled check for new events...');
+  scheduleReminders();
+});
 
 // Initial run
+log('Performing initial run...');
 scheduleReminders();
 
-console.log('🦘 Reminderoo is hopping into action!'); 
+log('🦘 Reminderoo is fully initialized and hopping into action!'); 
