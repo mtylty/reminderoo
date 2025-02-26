@@ -1,0 +1,26 @@
+# Google Calendar Settings
+google:
+  client_email: "your-service-account@project.iam.gserviceaccount.com"
+  private_key: |
+    -----BEGIN PRIVATE KEY-----
+    Your Private Key Here
+    -----END PRIVATE KEY-----
+  calendar_id: "your-calendar-id@group.calendar.google.com"
+
+# Slack Settings
+slack:
+  bot_token: "xoxb-your-bot-token"
+  channel_id: "C0123456789"
+
+# HiBob Settings
+hibob:
+  api_key: "your-hibob-api-key"
+  base_url: "https://api.hibob.com/v1"
+  shoutout:
+    type: "announcement"
+    visibility: "company"
+
+# Application Settings
+app:
+  check_interval: "0 * * * *"  # Cron expression for how often to check for new events
+  max_events: 10  # Maximum number of events to fetch at once 

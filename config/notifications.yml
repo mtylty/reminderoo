@@ -1,0 +1,13 @@
+notifications:
+  - time: "1 day before"
+    type: "hibob"
+    template: "1_day_before.md"
+  - time: "4 hours before"
+    type: "hibob"
+    template: "4_hours_before.md"
+  - time: "2 hours before"
+    type: "slack"
+    template: "2_hours_before.md"
+  - time: "10 minutes before"
+    type: "slack"
+    template: "10_minutes_before.md" 
