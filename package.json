@@ -1,7 +1,7 @@
 {
-  "name": "calendar-slack-reminder",
+  "name": "reminderoo",
   "version": "1.0.0",
-  "description": "Google Calendar to Slack reminder application",
+  "description": "A playful yet powerful calendar event notification system that hops between Slack and HiBob",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

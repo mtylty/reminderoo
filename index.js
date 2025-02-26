@@ -164,4 +164,4 @@ schedule.scheduleJob(process.env.APP_CHECK_INTERVAL, scheduleReminders);
 // Initial run
 scheduleReminders();
 
-console.log('Calendar reminder bot is running!'); 
+console.log('🦘 Reminderoo is hopping into action!'); 
